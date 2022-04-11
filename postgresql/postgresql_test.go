@@ -3,8 +3,9 @@ package postgresql_test
 
 import (
 	"os"
-	"pittsix/m/postgresql"
 	"testing"
+
+	"github.com/devitdano/pittsix/postgresql"
 
 	"github.com/stretchr/testify/assert"
 )
