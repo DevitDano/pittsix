@@ -133,6 +133,27 @@ func (awsS3 *AWSS3) UploadFile(filename string, file io.Reader) {
 	fmt.Printf("Successfully uploaded %q to %q\n", filename, awsBucketName)
 }
 
+func (awsS3 *AWSS3) DownloadFile(item string) {
+	GetInstance().GetClient()
+	downloader := s3manager.NewDownloader(awsS3.Sess)
+	file, err := os.Create(item)
+	if err != nil {
+		exitErrorf("Unable to open file %q, %v", item, err)
+	}
+
+	defer file.Close()
+	numBytes, err := downloader.Download(file,
+		&s3.GetObjectInput{
+			Bucket: aws.String(awsBucketName),
+			Key:    aws.String(item),
+		})
+	if err != nil {
+		exitErrorf("Unable to download item %q, %v", item, err)
+	}
+
+	fmt.Println("Downloaded", file.Name(), numBytes, "bytes")
+}
+
 func exitErrorf(msg string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, msg+"\n", args...)
 	os.Exit(1)
