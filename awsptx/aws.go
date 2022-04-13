@@ -140,7 +140,6 @@ func (awsS3 *AWSS3) DownloadFile(item string) {
 	if err != nil {
 		exitErrorf("Unable to open file %q, %v", item, err)
 	}
-
 	defer file.Close()
 	numBytes, err := downloader.Download(file,
 		&s3.GetObjectInput{
@@ -152,6 +151,19 @@ func (awsS3 *AWSS3) DownloadFile(item string) {
 	}
 
 	fmt.Println("Downloaded", file.Name(), numBytes, "bytes")
+}
+
+func (awsS3 *AWSS3) DeleteFile(filename string) {
+	svc := GetInstance().GetClient()
+	_, err := svc.DeleteObject(&s3.DeleteObjectInput{Bucket: aws.String(awsBucketName), Key: aws.String(filename)})
+	if err != nil {
+		exitErrorf("Unable to delete object %q from bucket %q, %v", filename, awsBucketName, err)
+	}
+
+	err = svc.WaitUntilObjectNotExists(&s3.HeadObjectInput{
+		Bucket: aws.String(awsBucketName),
+		Key:    aws.String(filename),
+	})
 }
 
 func exitErrorf(msg string, args ...interface{}) {

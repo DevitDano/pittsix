@@ -27,12 +27,18 @@ func TestListUploadFile(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	awsptx.GetInstance().UploadFile("testfile.jpg", bufio.NewReader(file))
+	awsptx.GetInstance().UploadFile("testfile", bufio.NewReader(file))
 	ass.True(true)
 }
 
 func TestListDownloadFile(t *testing.T) {
 	ass := assert.New(t)
-	awsptx.GetInstance().DownloadFile("testfile.jpg")
+	awsptx.GetInstance().DownloadFile("testfile")
+	ass.True(true)
+}
+
+func TestListDeleteFile(t *testing.T) {
+	ass := assert.New(t)
+	awsptx.GetInstance().DeleteFile("testfile")
 	ass.True(true)
 }
