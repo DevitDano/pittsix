@@ -55,10 +55,10 @@ func ConnectAws() *session.Session {
 	}
 	sess, err := session.NewSession(
 		&aws.Config{
-			Region: aws.String(region),
+			Region: aws.String(awsRegion),
 			Credentials: credentials.NewStaticCredentials(
-				AccessKeyID,
-				SecretAccessKey,
+				awsAccessKeyID,
+				awsSecretKey,
 				"", // a token will be created when the session it's used.
 			),
 		})
