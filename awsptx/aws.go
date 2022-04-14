@@ -115,7 +115,7 @@ func (aswS3 *AWSS3) ListBucketItems() {
 	}
 }
 
-func (awsS3 *AWSS3) UploadFile(filename string, file io.Reader) {
+func (awsS3 *AWSS3) UploadFile(filename string, file io.Reader) bool {
 	if awsBucketName == "" {
 		panic("bucket name must be set")
 	}
@@ -128,17 +128,20 @@ func (awsS3 *AWSS3) UploadFile(filename string, file io.Reader) {
 	if err != nil {
 		// Print the error and exit.
 		exitErrorf("Unable to upload %q to %q, %v", filename, awsBucketName, err)
+		return false
 	}
 
 	fmt.Printf("Successfully uploaded %q to %q\n", filename, awsBucketName)
+	return true
 }
 
-func (awsS3 *AWSS3) DownloadFile(item string) {
+func (awsS3 *AWSS3) DownloadFile(item string) *os.File {
 	GetInstance().GetClient()
 	downloader := s3manager.NewDownloader(awsS3.Sess)
 	file, err := os.Create(item)
 	if err != nil {
 		exitErrorf("Unable to open file %q, %v", item, err)
+		return nil
 	}
 	defer file.Close()
 	numBytes, err := downloader.Download(file,
@@ -148,22 +151,29 @@ func (awsS3 *AWSS3) DownloadFile(item string) {
 		})
 	if err != nil {
 		exitErrorf("Unable to download item %q, %v", item, err)
+		return nil
 	}
 
 	fmt.Println("Downloaded", file.Name(), numBytes, "bytes")
+	return file
 }
 
-func (awsS3 *AWSS3) DeleteFile(filename string) {
+func (awsS3 *AWSS3) DeleteFile(filename string) bool {
 	svc := GetInstance().GetClient()
 	_, err := svc.DeleteObject(&s3.DeleteObjectInput{Bucket: aws.String(awsBucketName), Key: aws.String(filename)})
 	if err != nil {
 		exitErrorf("Unable to delete object %q from bucket %q, %v", filename, awsBucketName, err)
+		return false
 	}
 
 	err = svc.WaitUntilObjectNotExists(&s3.HeadObjectInput{
 		Bucket: aws.String(awsBucketName),
 		Key:    aws.String(filename),
 	})
+	if err != nil {
+		return false
+	}
+	return true
 }
 
 func exitErrorf(msg string, args ...interface{}) {
