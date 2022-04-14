@@ -11,13 +11,13 @@ import (
 
 func TestListBucket(t *testing.T) {
 	ass := assert.New(t)
-	awsptx.GetInstance().ListBuckets()
+	awsptx.New().ListBuckets()
 	ass.True(true)
 }
 
 func TestListBucketItems(t *testing.T) {
 	ass := assert.New(t)
-	awsptx.GetInstance().ListBucketItems()
+	awsptx.New().ListBucketItems()
 	ass.True(true)
 }
 
@@ -27,18 +27,18 @@ func TestListUploadFile(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	awsptx.GetInstance().UploadFile("testfile", bufio.NewReader(file))
+	awsptx.New().UploadFile("testfile", bufio.NewReader(file))
 	ass.True(true)
 }
 
 func TestListDownloadFile(t *testing.T) {
 	ass := assert.New(t)
-	awsptx.GetInstance().DownloadFile("testfile")
+	awsptx.New().DownloadFile("testfile")
 	ass.True(true)
 }
 
 func TestListDeleteFile(t *testing.T) {
 	ass := assert.New(t)
-	awsptx.GetInstance().DeleteFile("testfile")
+	awsptx.New().DeleteFile("testfile")
 	ass.True(true)
 }

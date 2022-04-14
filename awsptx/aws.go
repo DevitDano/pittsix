@@ -1,8 +1,10 @@
 package awsptx
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -29,21 +31,22 @@ var (
 	awsBucketName   = os.Getenv(AWSBucketName)
 )
 
-var instance *session.Session
+var instance *AWSS3
 
 type AWSS3 struct {
 	Sess *session.Session
 }
 
-func GetInstance() *AWSS3 {
-	awsS3 := &AWSS3{}
+func New() *AWSS3 {
 	if instance == nil {
-		awsS3.Sess = ConnectAws()
+		instance = &AWSS3{
+			Sess: connectAws(),
+		}
 	}
-	return awsS3
+	return instance
 }
 
-func ConnectAws() *session.Session {
+func connectAws() *session.Session {
 	if awsAccessKeyID == "" {
 		panic("awsS3 access key must be set")
 	}
@@ -68,22 +71,22 @@ func ConnectAws() *session.Session {
 	return sess
 }
 
-func (awsS3 *AWSS3) GetClient() *s3.S3 {
-	if awsS3.Sess == nil {
-		GetInstance()
+func getS3() *s3.S3 {
+	if instance == nil {
+		New()
 	}
-	return s3.New(awsS3.Sess)
+	return s3.New(instance.Sess)
 }
 
 func (awsS3 *AWSS3) GetManagerUploader() *s3manager.Uploader {
 	if awsS3.Sess == nil {
-		GetInstance()
+		New()
 	}
 	return s3manager.NewUploader(awsS3.Sess)
 }
 
 func (awsS3 *AWSS3) ListBuckets() {
-	result, err := awsS3.GetClient().ListBuckets(nil)
+	result, err := getS3().ListBuckets(nil)
 	if err != nil {
 		exitErrorf("Unable to list buckets, %v", err)
 	}
@@ -100,7 +103,7 @@ func (aswS3 *AWSS3) ListBucketItems() {
 	if awsBucketName == "" {
 		panic("bucket name must be set")
 	}
-	svc := GetInstance().GetClient()
+	svc := getS3()
 	resp, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{Bucket: aws.String(awsBucketName)})
 	if err != nil {
 		exitErrorf("Unable to list items in bucket %q, %v", awsBucketName, err)
@@ -136,7 +139,7 @@ func (awsS3 *AWSS3) UploadFile(filename string, file io.Reader) bool {
 }
 
 func (awsS3 *AWSS3) DownloadFile(item string) *os.File {
-	GetInstance().GetClient()
+	New()
 	downloader := s3manager.NewDownloader(awsS3.Sess)
 	file, err := os.Create(item)
 	if err != nil {
@@ -158,8 +161,38 @@ func (awsS3 *AWSS3) DownloadFile(item string) *os.File {
 	return file
 }
 
+func GetFile(key string) bytes.Buffer {
+	svc := getS3()
+	params := &s3.GetObjectInput{
+		Bucket: aws.String(awsBucketName), // Required
+		Key:    aws.String(key),           // Required
+	}
+	resp, err := svc.GetObject(params)
+
+	if err != nil {
+		// Print the error, cast err to awserr.Error to get the Code and
+		// Message from an error.
+		log.Fatal(err.Error())
+	}
+
+	size := int(*resp.ContentLength)
+
+	buffer := make([]byte, size)
+	defer resp.Body.Close()
+	var bbuffer bytes.Buffer
+	for true {
+		num, rerr := resp.Body.Read(buffer)
+		if num > 0 {
+			bbuffer.Write(buffer[:num])
+		} else if rerr == io.EOF || rerr != nil {
+			break
+		}
+	}
+	return bbuffer
+}
+
 func (awsS3 *AWSS3) DeleteFile(filename string) bool {
-	svc := GetInstance().GetClient()
+	svc := getS3()
 	_, err := svc.DeleteObject(&s3.DeleteObjectInput{Bucket: aws.String(awsBucketName), Key: aws.String(filename)})
 	if err != nil {
 		exitErrorf("Unable to delete object %q from bucket %q, %v", filename, awsBucketName, err)
