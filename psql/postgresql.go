@@ -1,4 +1,5 @@
-package postgresql
+// psql/postgresql.go
+package psql
 
 import (
 	"fmt"

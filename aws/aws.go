@@ -1,7 +1,8 @@
-package awsptx
+package aws
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -37,24 +38,28 @@ type AWSS3 struct {
 	Sess *session.Session
 }
 
-func New() *AWSS3 {
+func New() (*AWSS3, error) {
 	if instance == nil {
+		cnn, err := connectAws()
+		if err != nil {
+			return nil, err
+		}
 		instance = &AWSS3{
-			Sess: connectAws(),
+			Sess: cnn,
 		}
 	}
-	return instance
+	return instance, nil
 }
 
-func connectAws() *session.Session {
+func connectAws() (*session.Session, error) {
 	if awsAccessKeyID == "" {
-		panic("awsS3 access key must be set")
+		return nil, errors.New("awsS3 access key must be set")
 	}
 	if awsSecretKey == "" {
-		panic("awsS3 secret key must be set")
+		return nil, errors.New("awsS3 secret key must be set")
 	}
 	if awsRegion == "" {
-		panic("awsS3 region must be set")
+		return nil, errors.New("awsS3 region must be set")
 	}
 	sess, err := session.NewSession(
 		&aws.Config{
@@ -66,9 +71,9 @@ func connectAws() *session.Session {
 			),
 		})
 	if err != nil {
-		panic(err)
+		return nil, errors.New(err.Error())
 	}
-	return sess
+	return sess, nil
 }
 
 func getS3() *s3.S3 {
